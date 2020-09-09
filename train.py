@@ -3,7 +3,7 @@ from utils import seed_everything
 from dataset import ImageFeatureDataset, PairFeatureDataset, TextDataset, FeatureDataset
 from transformers import RobertaModel, RobertaTokenizer, BertModel, BertTokenizer
 from torch.utils.data import DataLoader
-from models import NeuralNetwork, SAJEM, CustomSelfAttention, BertFinetune
+from models import NeuralNetwork, SAJEM, CustomSelfAttention, BertFinetune, MultiSelfAttention
 import torch
 import os
 import sys
@@ -62,7 +62,7 @@ if __name__ == "__main__":
                                 use_dropout=opt['use_dropout'],
                                 use_batchnorm=opt['use_batchnorm']).to(device)
     
-    image_mha = CustomSelfAttention(opt['common_dim'], dropout=opt['mha_dropout']).to(device)
+    image_mha = MultiSelfAttention(opt['common_dim'], num_layers=opt['num_attention_layers'], dropout=opt['mha_dropout']).to(device)
     if opt['text_model_type'] == 'roberta':
         bert = RobertaModel.from_pretrained(opt['text_model_pretrained'], output_hidden_states=True).to(device)
     else:

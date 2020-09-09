@@ -84,7 +84,22 @@ class CustomSelfAttention(nn.Module):
         attn_weights = F.softmax(query.mm(key.t()), dim=1)
         attn_output = attn_weights.mm(value) 
         residual = self.layer_norm(image_features + attn_output)
-        output = residual.mean(dim=0, keepdim=True)
+        #output = residual.mean(dim=0, keepdim=True)
+        return residual
+
+class MultiSelfAttention(nn.Module):
+    """
+    Multi layer self attention module
+    """
+    def __init__(self, embed_dim, num_layers=2, bias=True, dropout=0):
+        self.attention_blocks = []
+        self.num_layers = num_layers
+        for _ in range(num_layers):
+            self.attention_blocks.append(CustomSelfAttention(embed_dim, bias, dropout))
+    def forward(self, x):
+        for i in range(self.num_layers):
+            x = self.attention_blocks[i](x)
+        output = x.mean(dim=0, keepdim=True)
         return output
 
 class BertFinetune(nn.Module):
