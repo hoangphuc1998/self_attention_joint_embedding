@@ -21,7 +21,7 @@ def evaluate_t2i(image_mha, image_encoder, bert_model, text_encoder, image_datal
             mha_features = []
             for feature in features:
                 feature = l2norm(feature.to(device))
-                #feature = l2norm(image_mha(feature))
+                feature = l2norm(image_mha(feature))
                 feature = torch.mean(feature, dim=0, keepdim=True)
                 mha_features.append(feature)
             mha_features = torch.cat(mha_features, dim=0)
@@ -80,7 +80,7 @@ def evaluate_i2t(image_mha, image_encoder, bert_model, text_encoder, image_datal
             mha_features = []
             for feature in features:
                 feature = l2norm(feature.to(device))
-                #feature = l2norm(image_mha(feature))
+                feature = l2norm(image_mha(feature))
                 feature = torch.mean(feature, dim=0, keepdim=True)
                 mha_features.append(feature)
             mha_features = torch.cat(mha_features, dim=0)
@@ -122,7 +122,7 @@ if __name__ == "__main__":
                                 use_dropout=opt['use_dropout'],
                                 use_batchnorm=opt['use_batchnorm']).to(device)
     
-    #image_mha = CustomSelfAttention(opt['common_dim'], dropout=opt['mha_dropout']).to(device)
+    image_mha = CustomSelfAttention(opt['common_dim'], dropout=opt['mha_dropout']).to(device)
 
     # Define tokenizer for text
     if opt['text_model_type'] == 'roberta':
@@ -141,11 +141,11 @@ if __name__ == "__main__":
     image_encoder.load_state_dict(torch.load(os.path.join(folder, 'image_encoder.pth'), map_location=device))
     text_encoder.load_state_dict(torch.load(os.path.join(folder, 'text_encoder.pth'), map_location=device))
     bert_model.load_state_dict(torch.load(os.path.join(folder, 'bert_model.pth'), map_location=device))
-    #image_mha.load_state_dict(torch.load(os.path.join(folder, 'image_mha.pth'), map_location=device))
+    image_mha.load_state_dict(torch.load(os.path.join(folder, 'image_mha.pth'), map_location=device))
     image_encoder.eval()
     text_encoder.eval()
     bert_model.eval()
-    #image_mha.eval()
+    image_mha.eval()
     image_mha = None
     # Define dataloader
     def my_collate_fn(batch):
