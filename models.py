@@ -92,6 +92,7 @@ class MultiSelfAttention(nn.Module):
     Multi layer self attention module
     """
     def __init__(self, embed_dim, num_layers=2, bias=True, dropout=0):
+        super().__init__()
         self.attention_blocks = []
         self.num_layers = num_layers
         for _ in range(num_layers):

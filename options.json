@@ -37,5 +37,5 @@
     "val_file": "data/val_annotations.json",
     "test_file": "data/test_annotations.json",
     "feature_folder": "data/COCO_Features",
-    "version": "Ver_no_sa"
+    "version": "Ver_multi"
 }
