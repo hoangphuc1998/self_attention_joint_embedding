@@ -93,13 +93,13 @@ class MultiSelfAttention(nn.Module):
     """
     def __init__(self, embed_dim, num_layers=2, bias=True, dropout=0):
         super().__init__()
-        self.attention_blocks = []
+        blocks = []
         self.num_layers = num_layers
         for _ in range(num_layers):
-            self.attention_blocks.append(CustomSelfAttention(embed_dim, bias, dropout))
+            blocks.append(CustomSelfAttention(embed_dim, bias, dropout))
+        self.model = nn.Sequential(*blocks)
     def forward(self, x):
-        for i in range(self.num_layers):
-            x = self.attention_blocks[i](x)
+        x = self.model(x)
         output = x.mean(dim=0, keepdim=True)
         return output
 
