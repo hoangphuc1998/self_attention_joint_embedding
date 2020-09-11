@@ -93,6 +93,7 @@ if __name__ == "__main__":
         for i, (image_features, input_ids, attention_mask) in pbar:
             input_ids = torch.stack(input_ids).to(device)
             attention_mask = torch.stack(attention_mask).to(device)
+            image_features = torch.stack(image_features)
             loss = model.train(image_features, input_ids, attention_mask, epoch)
             num_steps+=1
             writer.add_scalar('Training loss', loss, num_steps)

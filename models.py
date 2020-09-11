@@ -223,6 +223,7 @@ class SAJEM():
             image_ids = []
             for ids, features in val_image_dataloader:
                 image_ids.append(torch.stack(ids))
+                features = torch.stack(features)
                 mha_features = batch_l2norm(features).detach()
                 mha_features = l2norm(self.image_mha(features))
                 # mha_features = []
