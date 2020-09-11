@@ -81,7 +81,7 @@ class CustomSelfAttention(nn.Module):
         key = self.key_dropout(key)
         value = self.value_proj(image_features)
         value = self.value_dropout(value)
-        attn_weights = F.softmax(query.bmm(key.t()), dim=2) # (B, N, N)
+        attn_weights = F.softmax(query.bmm(key.permute(0,2,1)), dim=2) # (B, N, N)
         attn_output = attn_weights.bmm(value) 
         residual = self.layer_norm(image_features + attn_output)
         #output = residual.mean(dim=0, keepdim=True)
