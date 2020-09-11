@@ -33,9 +33,9 @@
     "grad_clip": 2,
     "max_seq_len": 64,
     "mha_dropout": 0.2,
-    "train_file": "data/train_annotations.json",
-    "val_file": "data/val_annotations.json",
-    "test_file": "data/test_annotations.json",
-    "feature_folder": "data/COCO_Features",
-    "version": "Ver_multi"
+    "train_file": "/content/data/train_annotations.json",
+    "val_file": "/content/data/val_annotations.json",
+    "test_file": "/content/data/test_annotations.json",
+    "feature_folder": "/content/data/COCO_Features",
+    "version": "/content/drive/My Drive/Models/Dual_Encoding_Attention_MultiLayer_1"
 }

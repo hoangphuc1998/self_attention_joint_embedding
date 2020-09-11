@@ -74,11 +74,11 @@ if __name__ == "__main__":
     
     # Save folder
     version = opt['version']
-    save_folder = './' + version
+    save_folder = version
     if not os.path.isdir(save_folder):
         os.makedirs(save_folder)
     # Tensorboard Summary writer
-    logdir = './' + version + '/log'
+    logdir = os.path.join(version, "log")
     if not os.path.isdir(save_folder):
         os.makedirs(save_folder)
     writer = SummaryWriter(log_dir=logdir)
