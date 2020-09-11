@@ -37,10 +37,9 @@ class ImageFeatureDataset(Dataset):
     return feature, attention_mask
     
 class PairFeatureDataset(Dataset):
-  def __init__(self, image_dataset, text_dataset, max_num_regions=15):
+  def __init__(self, image_dataset, text_dataset):
     self.image_dataset = image_dataset
     self.text_dataset = text_dataset
-    self.max_num_regions = 15
   def __getitem__(self, idx):
     image_file, input_ids, attention_mask = self.text_dataset.__getitem__(idx)
     image, image_attention_mask = self.image_dataset.get_by_image_filename(image_file)
@@ -51,10 +50,11 @@ class PairFeatureDataset(Dataset):
     return len(self.text_dataset)
 
 class FeatureDataset(Dataset):
-  def __init__(self, folder, json_file):
+  def __init__(self, folder, json_file, max_num_regions=15):
     self.js = json.load(open(json_file))
     self.folder = folder
     self.feature_files = self.js['image_files']
+    self.max_num_regions = max_num_regions
   def __getitem__(self, idx):
     file = self.feature_files[idx]
     image_id = torch.tensor(int(re.findall(r'\d{12}', file)[0]))

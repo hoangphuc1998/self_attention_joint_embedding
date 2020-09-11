@@ -30,17 +30,17 @@ if __name__ == "__main__":
         tokenizer = BertTokenizer.from_pretrained(opt['text_model_pretrained'])
     
     # Define dataset
-    image_dataset = ImageFeatureDataset(opt['feature_folder'])
+    image_dataset = ImageFeatureDataset(opt['feature_folder'], max_num_regions=opt["max_num_regions"])
     text_dataset = TextDataset(opt['train_file'], tokenizer, opt['max_seq_len'])
     dataset = PairFeatureDataset(image_dataset, text_dataset)
     dataloader = DataLoader(dataset, batch_size = opt['batch_size'], shuffle=True, collate_fn=my_collate_fn)
     # Dataset for evaluation
-    val_image_dataset = FeatureDataset(opt['feature_folder'], opt['val_file'])
+    val_image_dataset = FeatureDataset(opt['feature_folder'], opt['val_file'], max_num_regions=opt["max_num_regions"])
     val_image_dataloader = DataLoader(val_image_dataset, batch_size=opt['batch_size'], collate_fn=my_collate_fn)
     val_text_dataset = TextDataset(opt['val_file'], tokenizer, opt['max_seq_len'])
     val_text_dataloader = DataLoader(val_text_dataset, batch_size = opt['batch_size'], shuffle=False)
     #Test dataset
-    test_image_dataset = FeatureDataset(opt['feature_folder'], opt['test_file'])
+    test_image_dataset = FeatureDataset(opt['feature_folder'], opt['test_file'], max_num_regions=opt["max_num_regions"])
     test_image_dataloader = DataLoader(test_image_dataset, batch_size=opt['batch_size'], collate_fn=my_collate_fn)
     test_text_dataset = TextDataset(opt['test_file'], tokenizer, opt['max_seq_len'])
     test_text_dataloader = DataLoader(test_text_dataset, batch_size = opt['batch_size'], shuffle=False)

@@ -33,6 +33,7 @@
     "grad_clip": 2,
     "max_seq_len": 64,
     "mha_dropout": 0.2,
+    "max_num_regions": 15,
     "train_file": "/content/data/train_annotations.json",
     "val_file": "/content/data/val_annotations.json",
     "test_file": "/content/data/test_annotations.json",
