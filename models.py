@@ -106,6 +106,7 @@ class MultiSelfAttention(nn.Module):
     def forward(self, x, attention_mask):
         for attn_module in self.attn_modules:
             x = attn_module(x, attention_mask)
+        x = torch.mul(x, attention_mask.unsqueeze(-1))
         output = x.mean(dim=1, keepdim=False)
         return output
 

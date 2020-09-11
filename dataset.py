@@ -31,6 +31,8 @@ class ImageFeatureDataset(Dataset):
     num_regions = feature.shape[0]
     if self.max_num_regions > num_regions:
       feature_pad = torch.cat((self.max_num_regions - num_regions) * [torch.zeros(feature.shape[-1])]).to('cuda')
+      if self.max_num_regions - num_regions == 1:
+        feature_pad = feature_pad.unsqueeze(0)
       feature = torch.cat([feature, feature_pad], dim=0)
     attention_mask = torch.ones(self.max_num_regions)
     attention_mask[num_regions:self.max_num_regions] = 0
@@ -64,6 +66,8 @@ class FeatureDataset(Dataset):
     num_regions = feature.shape[0]
     if self.max_num_regions > num_regions:
       feature_pad = torch.cat((self.max_num_regions - num_regions) * [torch.zeros(feature.shape[-1])]).to('cuda')
+      if self.max_num_regions - num_regions == 1:
+        feature_pad = feature_pad.unsqueeze(0)
       feature = torch.cat([feature, feature_pad], dim=0)
     attention_mask = torch.ones(self.max_num_regions)
     attention_mask[num_regions:self.max_num_regions] = 0
