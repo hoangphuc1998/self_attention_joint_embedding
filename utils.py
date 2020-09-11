@@ -21,6 +21,13 @@ def l2norm(X):
     X = torch.div(X, norm)
     return X
 
+def batch_l2norm(X):
+    """L2 normalization for batch of image regions (B, N, D)
+    """
+    norm = torch.pow(X, 2).sum(dim=2, keepdim=True).sqrt()
+    X = torch.div(X, norm)
+    return X
+
 def get_top_k_eval(texts, images, k):
     dists = 1 - (texts.mm(images.t())/torch.norm(texts, p=2, dim=1, keepdim=True))/(torch.norm(images, p=2, dim=1, keepdim=True).t())
     _, indices = torch.topk(dists, k,  largest = False)
