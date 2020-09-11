@@ -169,11 +169,6 @@ class SAJEM():
     
         final_image_features = batch_l2norm(image_feature).detach()
         final_image_features = l2norm(self.image_mha(final_image_features, image_attention_mask))
-        # for feature in image_feature:
-        #     feature = l2norm(feature).detach()
-        #     feature = l2norm(self.image_mha(feature))
-        #     final_image_features.append(feature)
-        # final_image_features = torch.cat(final_image_features, dim=0)
 
         text_feature = self.bert_model(input_ids, attention_mask=attention_mask)
         text_feature = l2norm(text_feature)
@@ -235,12 +230,6 @@ class SAJEM():
                 image_attention_mask = torch.stack(image_attention_mask).to(self.device)
                 mha_features = batch_l2norm(features).detach()
                 mha_features = l2norm(self.image_mha(features, image_attention_mask))
-                # mha_features = []
-                # for feature in features:
-                #     feature = l2norm(feature.to(device))
-                #     feature = l2norm(self.image_mha(feature))
-                #     mha_features.append(feature)
-                # mha_features = torch.cat(mha_features, dim=0)
                 image_features.append(self.image_encoder(mha_features))
             image_features = torch.cat(image_features, dim=0)
             image_ids = torch.cat(image_ids, dim=0).to(self.device)

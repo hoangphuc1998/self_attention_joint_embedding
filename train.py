@@ -30,17 +30,17 @@ if __name__ == "__main__":
         tokenizer = BertTokenizer.from_pretrained(opt['text_model_pretrained'])
     
     # Define dataset
-    image_dataset = ImageFeatureDataset(opt['feature_folder'], max_num_regions=opt["max_num_regions"])
+    image_dataset = ImageFeatureDataset(opt['feature_folder'], max_num_regions=opt["max_num_regions"], device=device)
     text_dataset = TextDataset(opt['train_file'], tokenizer, opt['max_seq_len'])
     dataset = PairFeatureDataset(image_dataset, text_dataset)
     dataloader = DataLoader(dataset, batch_size = opt['batch_size'], shuffle=True, collate_fn=my_collate_fn)
     # Dataset for evaluation
-    val_image_dataset = FeatureDataset(opt['feature_folder'], opt['val_file'], max_num_regions=opt["max_num_regions"])
+    val_image_dataset = FeatureDataset(opt['feature_folder'], opt['val_file'], max_num_regions=opt["max_num_regions"], device=device)
     val_image_dataloader = DataLoader(val_image_dataset, batch_size=opt['batch_size'], collate_fn=my_collate_fn)
     val_text_dataset = TextDataset(opt['val_file'], tokenizer, opt['max_seq_len'])
     val_text_dataloader = DataLoader(val_text_dataset, batch_size = opt['batch_size'], shuffle=False)
     #Test dataset
-    test_image_dataset = FeatureDataset(opt['feature_folder'], opt['test_file'], max_num_regions=opt["max_num_regions"])
+    test_image_dataset = FeatureDataset(opt['feature_folder'], opt['test_file'], max_num_regions=opt["max_num_regions"], device=device)
     test_image_dataloader = DataLoader(test_image_dataset, batch_size=opt['batch_size'], collate_fn=my_collate_fn)
     test_text_dataset = TextDataset(opt['test_file'], tokenizer, opt['max_seq_len'])
     test_text_dataloader = DataLoader(test_text_dataset, batch_size = opt['batch_size'], shuffle=False)
@@ -70,7 +70,8 @@ if __name__ == "__main__":
     bert_model = BertFinetune(bert, output_type=opt['output_bert_model'])
     model = SAJEM(image_encoder, text_encoder, image_mha, bert_model, optimizer = opt['optimizer'], lr = opt['lr'], l2_regularization = opt['l2_regularization'],
                     max_violation=opt['max_violation'], margin_loss=opt['margin_loss'], use_lr_scheduler=opt['use_lr_scheduler'], grad_clip=opt['grad_clip'],
-                    num_training_steps = int((opt['epochs']-1) * len(dataloader)))
+                    num_training_steps = int((opt['epochs']-1) * len(dataloader)),
+                    device = device)
     
     # Save folder
     version = opt['version']

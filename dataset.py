@@ -22,15 +22,16 @@ class TextDataset(Dataset):
     return filename, input_ids.squeeze(), attention_mask.squeeze()
 
 class ImageFeatureDataset(Dataset):
-  def __init__(self, image_folder, max_num_regions=15):
+  def __init__(self, image_folder, max_num_regions=15, device='cuda'):
     self.image_folder = image_folder
     self.max_num_regions = max_num_regions
+    self.device = device
   def get_by_image_filename(self, filename):
     path = os.path.join(self.image_folder, filename)
     feature = torch.load(path).detach().squeeze(-1).squeeze(-1)
     num_regions = feature.shape[0]
     if self.max_num_regions > num_regions:
-      feature_pad = torch.stack((self.max_num_regions - num_regions) * [torch.zeros(feature.shape[-1])]).to('cuda')
+      feature_pad = torch.stack((self.max_num_regions - num_regions) * [torch.zeros(feature.shape[-1])]).to(self.device)
       feature = torch.cat([feature, feature_pad], dim=0)
     attention_mask = torch.ones(self.max_num_regions)
     attention_mask[num_regions:self.max_num_regions] = 0
@@ -50,11 +51,12 @@ class PairFeatureDataset(Dataset):
     return len(self.text_dataset)
 
 class FeatureDataset(Dataset):
-  def __init__(self, folder, json_file, max_num_regions=15):
+  def __init__(self, folder, json_file, max_num_regions=15, device='cuda'):
     self.js = json.load(open(json_file))
     self.folder = folder
     self.feature_files = self.js['image_files']
     self.max_num_regions = max_num_regions
+    self.device = device
   def __getitem__(self, idx):
     file = self.feature_files[idx]
     image_id = torch.tensor(int(re.findall(r'\d{12}', file)[0]))
@@ -63,7 +65,7 @@ class FeatureDataset(Dataset):
       return None
     num_regions = feature.shape[0]
     if self.max_num_regions > num_regions:
-      feature_pad = torch.stack((self.max_num_regions - num_regions) * [torch.zeros(feature.shape[-1])]).to('cuda')
+      feature_pad = torch.stack((self.max_num_regions - num_regions) * [torch.zeros(feature.shape[-1])]).to(self.device)
       feature = torch.cat([feature, feature_pad], dim=0)
     attention_mask = torch.ones(self.max_num_regions)
     attention_mask[num_regions:self.max_num_regions] = 0
