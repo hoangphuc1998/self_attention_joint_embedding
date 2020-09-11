@@ -77,7 +77,7 @@ class CustomSelfAttention(nn.Module):
     def forward(self, image_features, attention_mask):
         '''
         image_features  --region features (B, N, D)
-        attention_mask  --mask of ones and zeros indicates what regions are attended, avoid attending to zeros padding regions (B, N)
+        attention_mask  --mask of ones and zeros indicates which regions are attended, avoid attending to zeros padding regions (B, N)
         '''
         query = self.query_proj(image_features) # (B, N, D)
         query = self.query_dropout(query)
@@ -90,7 +90,7 @@ class CustomSelfAttention(nn.Module):
         attn_output = attn_weights.bmm(value)
         residual = self.layer_norm(image_features + attn_output)
         #output = residual.mean(dim=0, keepdim=True)
-        return residual, attention_mask
+        return residual
 
 class MultiSelfAttention(nn.Module):
     """
@@ -102,9 +102,10 @@ class MultiSelfAttention(nn.Module):
         self.num_layers = num_layers
         for _ in range(num_layers):
             blocks.append(CustomSelfAttention(embed_dim, bias, dropout))
-        self.model = nn.Sequential(*blocks)
+        self.modules = nn.ModuleList(blocks)
     def forward(self, x, attention_mask):
-        x, _ = self.model(x, attention_mask)
+        for attention_module in self.modules:
+            x = attention_module(x, attention_mask)
         output = x.mean(dim=1, keepdim=False)
         return output
 
