@@ -104,10 +104,11 @@ class MultiSelfAttention(nn.Module):
             blocks.append(CustomSelfAttention(embed_dim, bias, dropout))
         self.attn_modules = nn.ModuleList(blocks)
     def forward(self, x, attention_mask):
+        eps = 1e-9
         for attn_module in self.attn_modules:
             x = attn_module(x, attention_mask)
-        x = torch.mul(x, attention_mask.unsqueeze(1))
-        output = x.mean(dim=1, keepdim=False)
+        x = torch.mul(x, attention_mask.unsqueeze(-1))
+        output = torch.div(x.sum(dim=1, keepdim=False), attention_mask.sum(dim=1) + eps)
         return output
 
 class BertFinetune(nn.Module):
