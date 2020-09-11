@@ -15,7 +15,7 @@ class TextDataset(Dataset):
   def __getitem__(self, idx):
     item = self.annotations[idx]
     caption = item['caption']
-    tokenizer_res = self.tokenizer.encode_plus(caption, add_special_tokens=True, pad_to_max_length=True, max_length=self.max_seq_len, return_attention_mask=True, return_token_type_ids=False)
+    tokenizer_res = self.tokenizer.encode_plus(caption, add_special_tokens=True, pad_to_max_length=True, max_length=self.max_seq_len, return_attention_mask=True, return_token_type_ids=False, truncation=True)
     input_ids = torch.tensor([tokenizer_res['input_ids']])
     attention_mask = torch.tensor([tokenizer_res['attention_mask']])
     filename = item['filename']
