@@ -86,7 +86,7 @@ class CustomSelfAttention(nn.Module):
         value = self.value_proj(image_features)
         value = self.value_dropout(value)
         attn_weights = F.softmax(query.bmm(key.permute(0,2,1)), dim=2) # (B, N, N)
-        attn_weights = torch.mul(attn_weights, attention_mask.unsqueeze(-1))
+        attn_weights = torch.mul(attn_weights, attention_mask.unsqueeze(1))
         attn_output = attn_weights.bmm(value)
         residual = self.layer_norm(image_features + attn_output)
         #output = residual.mean(dim=0, keepdim=True)
@@ -106,7 +106,7 @@ class MultiSelfAttention(nn.Module):
     def forward(self, x, attention_mask):
         for attn_module in self.attn_modules:
             x = attn_module(x, attention_mask)
-        x = torch.mul(x, attention_mask.unsqueeze(-1))
+        x = torch.mul(x, attention_mask.unsqueeze(1))
         output = x.mean(dim=1, keepdim=False)
         return output
 
@@ -169,7 +169,7 @@ class SAJEM():
     
         final_image_features = batch_l2norm(image_feature).detach()
         final_image_features = l2norm(self.image_mha(final_image_features, image_attention_mask))
-
+        assert (final_image_features == final_image_features).any(), print(torch.sum(attention_mask==0))
         text_feature = self.bert_model(input_ids, attention_mask=attention_mask)
         text_feature = l2norm(text_feature)
         if epoch == 1:
