@@ -134,11 +134,12 @@ class SAJEM():
     Consist of 2 branches to encode image and text
     '''
     def __init__(self, image_encoder, text_encoder, image_mha, bert_model, optimizer = 'adam', lr = 1e-3, l2_regularization=1e-2, margin_loss = 1e-2,
-               max_violation=True, cost_style='mean', use_lr_scheduler=False, grad_clip=0, num_training_steps = 30000):
+               max_violation=True, cost_style='mean', use_lr_scheduler=False, grad_clip=0, num_training_steps = 30000, device='cuda'):
         self.image_mha = image_mha
         self.image_encoder = image_encoder
         self.text_encoder = text_encoder
         self.bert_model = bert_model
+        self.device = device
 
         self.use_lr_scheduler = use_lr_scheduler
         self.params = []
@@ -230,8 +231,8 @@ class SAJEM():
             image_ids = []
             for ids, features, image_attention_mask in val_image_dataloader:
                 image_ids.append(torch.stack(ids))
-                features = torch.stack(features)
-                image_attention_mask = torch.stack(image_attention_mask)
+                features = torch.stack(features).to(self.device)
+                image_attention_mask = torch.stack(image_attention_mask).to(self.device)
                 mha_features = batch_l2norm(features).detach()
                 mha_features = l2norm(self.image_mha(features, image_attention_mask))
                 # mha_features = []
@@ -242,14 +243,14 @@ class SAJEM():
                 # mha_features = torch.cat(mha_features, dim=0)
                 image_features.append(self.image_encoder(mha_features))
             image_features = torch.cat(image_features, dim=0)
-            image_ids = torch.cat(image_ids, dim=0).to(device)
+            image_ids = torch.cat(image_ids, dim=0).to(self.device)
             # Evaluate
             recall = 0
             total_query = 0
             pbar = tqdm(enumerate(val_text_dataloader),total=len(val_text_dataloader),leave=False, position=0, file=sys.stdout)
             for i, (image_files, input_ids, attention_mask) in pbar:
-                input_ids = input_ids.to(device)
-                attention_mask = attention_mask.to(device)
+                input_ids = input_ids.to(self.device)
+                attention_mask = attention_mask.to(self.device)
                 text_features = self.bert_model(input_ids, attention_mask=attention_mask)
                 text_features = l2norm(text_features)
                 text_features = self.text_encoder(text_features)
