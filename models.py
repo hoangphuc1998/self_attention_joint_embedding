@@ -102,10 +102,10 @@ class MultiSelfAttention(nn.Module):
         self.num_layers = num_layers
         for _ in range(num_layers):
             blocks.append(CustomSelfAttention(embed_dim, bias, dropout))
-        self.modules = nn.ModuleList(blocks)
+        self.attn_modules = nn.ModuleList(blocks)
     def forward(self, x, attention_mask):
-        for attention_module in self.modules:
-            x = attention_module(x, attention_mask)
+        for attn_module in self.attn_modules:
+            x = attn_module(x, attention_mask)
         output = x.mean(dim=1, keepdim=False)
         return output
 
