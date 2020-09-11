@@ -90,11 +90,12 @@ if __name__ == "__main__":
     for epoch in range(1,opt['epochs']+1):
         losses = []
         pbar = tqdm(enumerate(dataloader),total=len(dataloader),leave=False, position=0, file=sys.stdout)
-        for i, (image_features, input_ids, attention_mask) in pbar:
+        for i, (image_features, image_attention_mask, input_ids, attention_mask) in pbar:
             input_ids = torch.stack(input_ids).to(device)
             attention_mask = torch.stack(attention_mask).to(device)
-            image_features = torch.stack(image_features)
-            loss = model.train(image_features, input_ids, attention_mask, epoch)
+            image_attention_mask = torch.stack(image_attention_mask).to(device)
+            image_features = torch.stack(image_features).to(device)
+            loss = model.train(image_features, image_attention_mask, input_ids, attention_mask, epoch)
             num_steps+=1
             writer.add_scalar('Training loss', loss, num_steps)
             for index, param_group in enumerate(model.optimizer.param_groups):

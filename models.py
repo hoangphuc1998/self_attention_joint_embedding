@@ -74,7 +74,11 @@ class CustomSelfAttention(nn.Module):
         self.value_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
         self.value_dropout = nn.Dropout(dropout)
         self.layer_norm = nn.LayerNorm([embed_dim])
-    def forward(self, image_features):
+    def forward(self, image_features, attention_mask):
+        '''
+        image_features  --region features (B, N, D)
+        attention_mask  --mask of ones and zeros indicates what regions are attended, avoid attending to zeros padding regions (B, N)
+        '''
         query = self.query_proj(image_features) # (B, N, D)
         query = self.query_dropout(query)
         key = self.key_proj(image_features)
@@ -82,10 +86,11 @@ class CustomSelfAttention(nn.Module):
         value = self.value_proj(image_features)
         value = self.value_dropout(value)
         attn_weights = F.softmax(query.bmm(key.permute(0,2,1)), dim=2) # (B, N, N)
-        attn_output = attn_weights.bmm(value) 
+        attn_weights = torch.mul(attn_weights, attention_mask.unsqueeze(-1))
+        attn_output = attn_weights.bmm(value)
         residual = self.layer_norm(image_features + attn_output)
         #output = residual.mean(dim=0, keepdim=True)
-        return residual
+        return residual, attention_mask
 
 class MultiSelfAttention(nn.Module):
     """
@@ -98,8 +103,8 @@ class MultiSelfAttention(nn.Module):
         for _ in range(num_layers):
             blocks.append(CustomSelfAttention(embed_dim, bias, dropout))
         self.model = nn.Sequential(*blocks)
-    def forward(self, x):
-        x = self.model(x)
+    def forward(self, x, attention_mask):
+        x, _ = self.model(x, attention_mask)
         output = x.mean(dim=1, keepdim=False)
         return output
 
@@ -153,14 +158,14 @@ class SAJEM():
         # loss
         self.mrl_loss = MarginRankingLoss(margin=margin_loss, max_violation=max_violation, cost_style=cost_style, direction='bidir')
     
-    def forward(self, image_feature, input_ids, attention_mask, epoch):
+    def forward(self, image_feature, image_attention_mask, input_ids, attention_mask, epoch):
         if epoch > 1 and self.frozen:
             self.frozen = False
             del self.lr_scheduler_0
             torch.cuda.empty_cache()
     
         final_image_features = batch_l2norm(image_feature).detach()
-        final_image_features = l2norm(self.image_mha(final_image_features))
+        final_image_features = l2norm(self.image_mha(final_image_features, image_attention_mask))
         # for feature in image_feature:
         #     feature = l2norm(feature).detach()
         #     feature = l2norm(self.image_mha(feature))
@@ -194,9 +199,9 @@ class SAJEM():
         self.image_encoder.eval()
         self.bert_model.eval()
 
-    def train(self, image_features, input_ids, attention_mask, epoch):
+    def train(self, image_features, image_attention_mask, input_ids, attention_mask, epoch):
         self.switch_to_train()
-        image_to_common, text_to_common = self.forward(image_features, input_ids, attention_mask, epoch)
+        image_to_common, text_to_common = self.forward(image_features, image_attention_mask, input_ids, attention_mask, epoch)
         self.optimizer.zero_grad()
 
         # Compute loss
@@ -221,11 +226,12 @@ class SAJEM():
         with torch.no_grad():
             image_features = []
             image_ids = []
-            for ids, features in val_image_dataloader:
+            for ids, features, image_attention_mask in val_image_dataloader:
                 image_ids.append(torch.stack(ids))
                 features = torch.stack(features)
+                image_attention_mask = torch.stack(image_attention_mask)
                 mha_features = batch_l2norm(features).detach()
-                mha_features = l2norm(self.image_mha(features))
+                mha_features = l2norm(self.image_mha(features, image_attention_mask))
                 # mha_features = []
                 # for feature in features:
                 #     feature = l2norm(feature.to(device))

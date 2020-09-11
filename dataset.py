@@ -22,22 +22,31 @@ class TextDataset(Dataset):
     return filename, input_ids.squeeze(), attention_mask.squeeze()
 
 class ImageFeatureDataset(Dataset):
-  def __init__(self, image_folder):
+  def __init__(self, image_folder, max_num_regions=15):
     self.image_folder = image_folder
+    self.max_num_regions = max_num_regions
   def get_by_image_filename(self, filename):
     path = os.path.join(self.image_folder, filename)
-    return torch.load(path).detach().squeeze(-1).squeeze(-1)
+    feature = torch.load(path).detach().squeeze(-1).squeeze(-1)
+    num_regions = feature.shape[0]
+    if self.max_num_regions > num_regions:
+      feature_pad = torch.cat((self.max_num_regions - num_regions) * [torch.zeros(feature.shape[-1])])
+      feature = torch.cat([feature, feature_pad], dim=0)
+    attention_mask = torch.ones(self.max_num_regions)
+    attention_mask[num_regions:self.max_num_regions] = 0
+    return feature, attention_mask
     
 class PairFeatureDataset(Dataset):
-  def __init__(self, image_dataset, text_dataset):
+  def __init__(self, image_dataset, text_dataset, max_num_regions=15):
     self.image_dataset = image_dataset
     self.text_dataset = text_dataset
+    self.max_num_regions = 15
   def __getitem__(self, idx):
     image_file, input_ids, attention_mask = self.text_dataset.__getitem__(idx)
-    image = self.image_dataset.get_by_image_filename(image_file)
+    image, image_attention_mask = self.image_dataset.get_by_image_filename(image_file)
     if image.shape[0]==0:
       return None
-    return image, input_ids, attention_mask
+    return image, image_attention_mask, input_ids, attention_mask
   def __len__(self):
     return len(self.text_dataset)
 
@@ -52,6 +61,12 @@ class FeatureDataset(Dataset):
     feature = torch.load(os.path.join(self.folder, file)).detach().squeeze(-1).squeeze(-1)
     if feature.shape[0]==0:
       return None
-    return image_id, feature
+    num_regions = feature.shape[0]
+    if self.max_num_regions > num_regions:
+      feature_pad = torch.cat((self.max_num_regions - num_regions) * [torch.zeros(feature.shape[-1])])
+      feature = torch.cat([feature, feature_pad], dim=0)
+    attention_mask = torch.ones(self.max_num_regions)
+    attention_mask[num_regions:self.max_num_regions] = 0
+    return image_id, feature, attention_mask
   def __len__(self):
     return len(self.feature_files)
