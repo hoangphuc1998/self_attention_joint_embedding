@@ -88,8 +88,8 @@ if __name__ == "__main__":
     num_steps = 0
     best_recall = 0
     best_epoch = 0
-    recall = model.evaluate(val_image_dataloader, val_text_dataloader, opt['k'])
-    print("Validation recall before training: " + str(recall))
+    # recall = model.evaluate(val_image_dataloader, val_text_dataloader, opt['k'])
+    # print("Validation recall before training: " + str(recall))
     for epoch in range(1,opt['epochs']+1):
         losses = []
         pbar = tqdm(enumerate(dataloader),total=len(dataloader),leave=False, position=0, file=sys.stdout)

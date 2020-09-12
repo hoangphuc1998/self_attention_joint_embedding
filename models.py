@@ -15,7 +15,10 @@ import sys
 from utils import get_top_k_eval, l2norm, batch_l2norm
 from losses import MarginRankingLoss
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+def print_debug(tensor_map):
+    for key, value in tensor_map.items():
+        print(key + ': ')
+        print(value)
 class NeuralNetwork(nn.Module):
     '''
     Neural network with custom hidden layers
@@ -85,10 +88,16 @@ class CustomSelfAttention(nn.Module):
         key = self.key_dropout(key)
         value = self.value_proj(image_features)
         value = self.value_dropout(value)
-        attn_weights = F.softmax(query.bmm(key.permute(0,2,1)), dim=2) # (B, N, N)
+        scores = query.bmm(key.permute(0,2,1))
+        attn_weights = F.softmax(scores, dim=2) # (B, N, N)
+        assert not scores.isinf().any(), print_debug({"scores": scores, "attn_weights": attn_weights})
+        assert not attn_weights.isnan().any(), print_debug({"query": query, "key": key, "attn_weights before": attn_weights.isnan().any(), "scores_nan":scores.isnan().any(),
+                                                            "scores": scores, "attn_weights": attn_weights})
         attn_weights = torch.mul(attn_weights, attention_mask.unsqueeze(1))
         attn_output = attn_weights.bmm(value)
         residual = self.layer_norm(image_features + attn_output)
+        assert not residual.isnan().any(), print_debug({"attn_weights after": attn_weights.isnan().any(), "nan attn_output": attn_output.isnan().any(), "residual": residual, "attn_output":attn_output,
+                                                        "attention_mask zero": (attention_mask==0).any(), "input": image_features})
         #output = residual.mean(dim=0, keepdim=True)
         return residual
 
