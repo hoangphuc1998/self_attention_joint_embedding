@@ -87,18 +87,11 @@ class CustomSelfAttention(nn.Module):
         value = self.value_proj(image_features)
         scores = query.bmm(key.permute(0,2,1))
         attn_weights = F.softmax(scores, dim=2) # (B, N, N)
-        # print(torch.sqrt(torch.sum(self.query_proj.weight ** 2)))
-        assert not scores.isinf().any(), print_debug({"scores": scores, "attn_weights": attn_weights})
-        assert not attn_weights.isnan().any(), print_debug({"query_weight": self.query_proj.weight,
-                                                            "query": query, "key": key, "attn_weights before": attn_weights.isnan().any(), "scores_nan":scores.isnan().any(),
-                                                            "scores": scores, "attn_weights": attn_weights})
         attn_weights = torch.mul(attn_weights, attention_mask.unsqueeze(1))
         attn_output = attn_weights.bmm(value)
         attn_output = self.output_proj(attn_output)
         attn_output = self.output_dropout(attn_output)
         residual = self.layer_norm(image_features + attn_output)
-        assert not residual.isnan().any(), print_debug({"attn_weights after": attn_weights.isnan().any(), "nan attn_output": attn_output.isnan().any(), "residual": residual, "attn_output":attn_output,
-                                                        "attention_mask zero": (attention_mask==0).any(), "input": image_features})
         #output = residual.mean(dim=0, keepdim=True)
         
         return residual
@@ -128,6 +121,7 @@ class MultiSelfAttention(nn.Module):
     def forward(self, x, attention_mask):
         eps = 1e-9
         for attn_module in self.attn_modules:
+            x = batch_l2norm(x)
             x = attn_module(x, attention_mask)
         x = torch.mul(x, attention_mask.unsqueeze(-1))
         output = torch.div(x.sum(dim=1, keepdim=False), attention_mask.sum(dim=1, keepdim=True) + eps)
@@ -173,7 +167,8 @@ class SAJEM():
         self.grad_clip = grad_clip
         self.frozen = False
         if optimizer == 'adamW':
-            self.optimizer = AdamW(self.params, lr=lr, weight_decay=l2_regularization)
+            self.optimizer = AdamW([{'params':list(self.bert_model.parameters()),'lr':3e-5},
+                                {'params':list(self.image_encoder.parameters()) + list(self.text_encoder.parameters()) + list(self.image_mha.parameters()),'lr':1e-4}])
         elif optimizer == 'adam':
             self.optimizer = torch.optim.Adam([{'params':list(self.bert_model.parameters()),'lr':3e-5},
                                 {'params':list(self.image_encoder.parameters()) + list(self.text_encoder.parameters()) + list(self.image_mha.parameters()),'lr':1e-4}])
@@ -190,10 +185,8 @@ class SAJEM():
             del self.lr_scheduler_0
             torch.cuda.empty_cache()
     
-        final_image_features = batch_l2norm(image_feature).detach()
-        assert not final_image_features.isnan().any(), print("Before")
-        final_image_features = l2norm(self.image_mha(final_image_features, image_attention_mask))
-        assert not final_image_features.isnan().any(), print("After")
+        # image_feature = batch_l2norm(image_feature).detach()
+        final_image_features = l2norm(self.image_mha(image_feature, image_attention_mask))
         text_feature = self.bert_model(input_ids, attention_mask=attention_mask)
         text_feature = l2norm(text_feature)
         if epoch == 1:
@@ -229,8 +222,6 @@ class SAJEM():
         # Compute loss
         loss = self.mrl_loss(text_to_common, image_to_common)
         loss.backward()
-        assert not torch.sqrt(torch.sum(self.image_mha.attn_modules[0].query_proj.weight.grad ** 2)).isnan().any(), print_debug({"image_features": image_features,
-                                            "attn_mask": image_attention_mask})
         if self.grad_clip > 0:
             torch.nn.utils.clip_grad.clip_grad_norm_(self.params, self.grad_clip)
 
@@ -253,7 +244,7 @@ class SAJEM():
                 image_ids.append(torch.stack(ids))
                 features = torch.stack(features).to(self.device)
                 image_attention_mask = torch.stack(image_attention_mask).to(self.device)
-                mha_features = batch_l2norm(features).detach()
+                # features = batch_l2norm(features).detach()
                 mha_features = l2norm(self.image_mha(features, image_attention_mask))
                 image_features.append(self.image_encoder(mha_features))
             image_features = torch.cat(image_features, dim=0)
