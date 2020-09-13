@@ -69,13 +69,13 @@ class CustomSelfAttention(nn.Module):
     '''
     def __init__(self, embed_dim, bias = True, dropout = 0):
         super().__init__()
+        self.bias = bias
         self.embed_dim = embed_dim
         self.query_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
-        self.query_dropout = nn.Dropout(dropout)
         self.key_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
-        self.key_dropout = nn.Dropout(dropout)
         self.value_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
-        self.value_dropout = nn.Dropout(dropout)
+        self.output_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
+        self.output_dropout = nn.Dropout(dropout)
         self.layer_norm = nn.LayerNorm([embed_dim])
     def forward(self, image_features, attention_mask):
         '''
@@ -83,23 +83,36 @@ class CustomSelfAttention(nn.Module):
         attention_mask  --mask of ones and zeros indicates which regions are attended, avoid attending to zeros padding regions (B, N)
         '''
         query = self.query_proj(image_features) # (B, N, D)
-        query = self.query_dropout(query)
         key = self.key_proj(image_features)
-        key = self.key_dropout(key)
         value = self.value_proj(image_features)
-        value = self.value_dropout(value)
         scores = query.bmm(key.permute(0,2,1))
         attn_weights = F.softmax(scores, dim=2) # (B, N, N)
+        # print(torch.sqrt(torch.sum(self.query_proj.weight ** 2)))
         assert not scores.isinf().any(), print_debug({"scores": scores, "attn_weights": attn_weights})
-        assert not attn_weights.isnan().any(), print_debug({"query": query, "key": key, "attn_weights before": attn_weights.isnan().any(), "scores_nan":scores.isnan().any(),
+        assert not attn_weights.isnan().any(), print_debug({"query_weight": self.query_proj.weight,
+                                                            "query": query, "key": key, "attn_weights before": attn_weights.isnan().any(), "scores_nan":scores.isnan().any(),
                                                             "scores": scores, "attn_weights": attn_weights})
         attn_weights = torch.mul(attn_weights, attention_mask.unsqueeze(1))
         attn_output = attn_weights.bmm(value)
+        attn_output = self.output_proj(attn_output)
+        attn_output = self.output_dropout(attn_output)
         residual = self.layer_norm(image_features + attn_output)
         assert not residual.isnan().any(), print_debug({"attn_weights after": attn_weights.isnan().any(), "nan attn_output": attn_output.isnan().any(), "residual": residual, "attn_output":attn_output,
                                                         "attention_mask zero": (attention_mask==0).any(), "input": image_features})
         #output = residual.mean(dim=0, keepdim=True)
+        
         return residual
+    
+    def init_weights(self):
+        nn.init.xavier_uniform_(self.key_proj.weight)
+        nn.init.xavier_uniform_(self.query_proj.weight)
+        nn.init.xavier_uniform_(self.value_proj.weight)
+        nn.init.xavier_uniform_(self.output_proj.weight)
+        if self.bias:
+            nn.init.constant_(self.key_proj.bias, 0.0)
+            nn.init.constant_(self.query_proj.bias, 0.0)
+            nn.init.constant_(self.value_proj.bias, 0.0)
+            nn.init.constant_(self.output_proj.bias, 0.0)
 
 class MultiSelfAttention(nn.Module):
     """
@@ -178,8 +191,9 @@ class SAJEM():
             torch.cuda.empty_cache()
     
         final_image_features = batch_l2norm(image_feature).detach()
+        assert not final_image_features.isnan().any(), print("Before")
         final_image_features = l2norm(self.image_mha(final_image_features, image_attention_mask))
-        assert (final_image_features == final_image_features).any(), print(torch.sum(attention_mask==0))
+        assert not final_image_features.isnan().any(), print("After")
         text_feature = self.bert_model(input_ids, attention_mask=attention_mask)
         text_feature = l2norm(text_feature)
         if epoch == 1:
@@ -215,7 +229,8 @@ class SAJEM():
         # Compute loss
         loss = self.mrl_loss(text_to_common, image_to_common)
         loss.backward()
-
+        assert not torch.sqrt(torch.sum(self.image_mha.attn_modules[0].query_proj.weight.grad ** 2)).isnan().any(), print_debug({"image_features": image_features,
+                                            "attn_mask": image_attention_mask})
         if self.grad_clip > 0:
             torch.nn.utils.clip_grad.clip_grad_norm_(self.params, self.grad_clip)
 

@@ -11,7 +11,7 @@ import numpy as np
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+torch.autograd.set_detect_anomaly(True)
 def my_collate_fn(batch):
     batch = filter (lambda x:x is not None, batch)
     return tuple(zip(*batch))
@@ -106,6 +106,7 @@ if __name__ == "__main__":
             losses.append(loss)
             # Step scheduler
             model.step_scheduler()
+            pbar.set_description("Loss: {:.3f}".format(loss))
         epoch_loss = np.mean(losses)
         writer.add_scalar('Epoch training loss', epoch_loss, epoch)
 
