@@ -30,6 +30,8 @@ class ImageFeatureDataset(Dataset):
     path = os.path.join(self.image_folder, filename)
     feature = torch.load(path).detach().squeeze(-1).squeeze(-1)
     num_regions = feature.shape[0]
+    if num_regions == 0:
+      return feature, torch.ones(num_regions)
     if self.max_num_regions > num_regions:
       feature_pad = torch.stack((self.max_num_regions - num_regions) * [torch.ones(feature.shape[-1])]).to(self.device)
       feature = torch.cat([feature, feature_pad], dim=0)

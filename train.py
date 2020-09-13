@@ -11,7 +11,7 @@ import numpy as np
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-torch.autograd.set_detect_anomaly(True)
+#torch.autograd.set_detect_anomaly(True)
 def my_collate_fn(batch):
     batch = filter (lambda x:x is not None, batch)
     return tuple(zip(*batch))
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     val_image_dataloader = DataLoader(val_image_dataset, batch_size=opt['batch_size'], collate_fn=my_collate_fn)
     val_text_dataset = TextDataset(opt['val_file'], tokenizer, opt['max_seq_len'])
     val_text_dataloader = DataLoader(val_text_dataset, batch_size = opt['batch_size'], shuffle=False)
-    #Test dataset
+    # Test dataset
     test_image_dataset = FeatureDataset(opt['feature_folder'], opt['test_file'], max_num_regions=opt["max_num_regions"], device=device)
     test_image_dataloader = DataLoader(test_image_dataset, batch_size=opt['batch_size'], collate_fn=my_collate_fn)
     test_text_dataset = TextDataset(opt['test_file'], tokenizer, opt['max_seq_len'])
