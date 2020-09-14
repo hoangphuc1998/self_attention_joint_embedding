@@ -12,7 +12,7 @@ import pickle
 import time
 import json
 import sys
-from utils import get_top_k_eval, l2norm, batch_l2norm
+from utils import get_top_k_eval, l2norm
 from losses import MarginRankingLoss
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def print_debug(tensor_map):
@@ -122,7 +122,6 @@ class MultiSelfAttention(nn.Module):
     def forward(self, x, attention_mask):
         eps = 1e-9
         for attn_module in self.attn_modules:
-            # x = batch_l2norm(x)
             x = attn_module(x, attention_mask)
         x = torch.mul(x, attention_mask.unsqueeze(-1))
         output = torch.div(x.sum(dim=1, keepdim=False), attention_mask.sum(dim=1, keepdim=True) + eps)
