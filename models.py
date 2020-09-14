@@ -77,6 +77,7 @@ class CustomSelfAttention(nn.Module):
         self.output_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
         self.output_dropout = nn.Dropout(dropout)
         self.layer_norm = nn.LayerNorm([embed_dim])
+        self.init_weights()
     def forward(self, image_features, attention_mask):
         '''
         image_features  --region features (B, N, D)
@@ -121,7 +122,7 @@ class MultiSelfAttention(nn.Module):
     def forward(self, x, attention_mask):
         eps = 1e-9
         for attn_module in self.attn_modules:
-            x = batch_l2norm(x)
+            # x = batch_l2norm(x)
             x = attn_module(x, attention_mask)
         x = torch.mul(x, attention_mask.unsqueeze(-1))
         output = torch.div(x.sum(dim=1, keepdim=False), attention_mask.sum(dim=1, keepdim=True) + eps)
@@ -185,7 +186,7 @@ class SAJEM():
             del self.lr_scheduler_0
             torch.cuda.empty_cache()
     
-        # image_feature = batch_l2norm(image_feature).detach()
+        image_feature = batch_l2norm(image_feature).detach()
         final_image_features = l2norm(self.image_mha(image_feature, image_attention_mask))
         text_feature = self.bert_model(input_ids, attention_mask=attention_mask)
         text_feature = l2norm(text_feature)
@@ -244,7 +245,7 @@ class SAJEM():
                 image_ids.append(torch.stack(ids))
                 features = torch.stack(features).to(self.device)
                 image_attention_mask = torch.stack(image_attention_mask).to(self.device)
-                # features = batch_l2norm(features).detach()
+                features = batch_l2norm(features).detach()
                 mha_features = l2norm(self.image_mha(features, image_attention_mask))
                 image_features.append(self.image_encoder(mha_features))
             image_features = torch.cat(image_features, dim=0)
