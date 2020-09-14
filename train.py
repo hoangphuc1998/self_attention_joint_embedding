@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     # Define model
     text_encoder = NeuralNetwork(input_dim=opt['text_dim'], 
-                                output_dim=opt['image_dim'], 
+                                output_dim=opt['common_dim'], 
                                 hidden_units=opt['text_encoder_hidden'], 
                                 hidden_activation=opt['text_encoder_hidden_activation'], 
                                 output_activation=opt['text_encoder_output_activation'],
@@ -62,7 +62,7 @@ if __name__ == "__main__":
                                 use_dropout=opt['use_dropout'],
                                 use_batchnorm=opt['use_batchnorm']).to(device)
     
-    image_mha = MultiSelfAttention(opt['common_dim'], num_layers=opt['num_attention_layers'], dropout=opt['mha_dropout']).to(device)
+    image_mha = MultiSelfAttention(opt['image_dim'], num_layers=opt['num_attention_layers'], dropout=opt['mha_dropout']).to(device)
     if opt['text_model_type'] == 'roberta':
         bert = RobertaModel.from_pretrained(opt['text_model_pretrained'], output_hidden_states=True).to(device)
     else:

@@ -14,17 +14,10 @@ def normalize(X):
     std = torch.std(X, dim = 1, keepdim=True)
     return (X - mean) / std
 
-def l2norm(X, eps=1e-8):
+def l2norm(X, eps=1e-9):
     """L2-normalize columns of X
     """
-    norm = torch.pow(X, 2).sum(dim=1, keepdim=True).sqrt()
-    X = torch.div(X, norm + eps)
-    return X
-
-def batch_l2norm(X, eps=1e-8):
-    """L2 normalization for batch of image regions (B, N, D)
-    """
-    norm = torch.pow(X, 2).sum(dim=2, keepdim=True).sqrt()
+    norm = torch.pow(X, 2).sum(dim=-1, keepdim=True).sqrt()
     X = torch.div(X, norm + eps)
     return X
 

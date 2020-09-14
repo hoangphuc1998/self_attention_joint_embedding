@@ -87,7 +87,7 @@ class CustomSelfAttention(nn.Module):
         key = self.key_proj(image_features)
         value = self.value_proj(image_features)
         scores = query.bmm(key.permute(0,2,1))
-        attn_weights = F.softmax(scores, dim=2) # (B, N, N)
+        attn_weights = F.softmax(scores, dim=-1) # (B, N, N)
         attn_weights = torch.mul(attn_weights, attention_mask.unsqueeze(1))
         attn_output = attn_weights.bmm(value)
         attn_output = self.output_proj(attn_output)
@@ -186,7 +186,7 @@ class SAJEM():
             del self.lr_scheduler_0
             torch.cuda.empty_cache()
     
-        image_feature = batch_l2norm(image_feature).detach()
+        image_feature = l2norm(image_feature).detach()
         final_image_features = l2norm(self.image_mha(image_feature, image_attention_mask))
         text_feature = self.bert_model(input_ids, attention_mask=attention_mask)
         text_feature = l2norm(text_feature)
