@@ -53,12 +53,12 @@ class NeuralNetwork(nn.Module):
 
         self.network.add_module("output", nn.Linear(hidden_units[-1], output_dim))
         # Output activation
-        if output_activation == 'relu':
-          self.network.add_module("activation_out", nn.ReLU())
-        elif output_activation == 'sigmoid':
-          self.network.add_module("activation_out", nn.Sigmoid())
-        elif output_activation == 'tanh':
-          self.network.add_module("activation_out", nn.Tanh())
+        # if output_activation == 'relu':
+        #   self.network.add_module("activation_out", nn.ReLU())
+        # elif output_activation == 'sigmoid':
+        #   self.network.add_module("activation_out", nn.Sigmoid())
+        # elif output_activation == 'tanh':
+        #   self.network.add_module("activation_out", nn.Tanh())
 
     def forward(self, x):
         return self.network(x)
@@ -244,7 +244,7 @@ class SAJEM():
                 image_ids.append(torch.stack(ids))
                 features = torch.stack(features).to(self.device)
                 image_attention_mask = torch.stack(image_attention_mask).to(self.device)
-                features = batch_l2norm(features).detach()
+                features = l2norm(features).detach()
                 mha_features = l2norm(self.image_mha(features, image_attention_mask))
                 image_features.append(self.image_encoder(mha_features))
             image_features = torch.cat(image_features, dim=0)
