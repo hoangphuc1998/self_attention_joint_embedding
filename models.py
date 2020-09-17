@@ -119,12 +119,21 @@ class MultiSelfAttention(nn.Module):
         for _ in range(num_layers):
             blocks.append(CustomSelfAttention(embed_dim, bias, dropout))
         self.attn_modules = nn.ModuleList(blocks)
+        self.gru = nn.GRU(embed_dim, embed_dim, num_layers=1, batch_first=False)
     def forward(self, x, attention_mask):
         eps = 1e-9
         for attn_module in self.attn_modules:
             x = attn_module(x, attention_mask)
         x = torch.mul(x, attention_mask.unsqueeze(-1))
-        output = torch.div(x.sum(dim=1, keepdim=False), attention_mask.sum(dim=1, keepdim=True) + eps)
+        # Create padding sequence for GRU
+        feature_list = []
+        for index, feature in enumerate(x):
+            last_index = torch.max((attention_mask[index]==1).nonzero())
+            feature_list.append(feature[:last_index + 1])
+        input_feature = nn.utils.rnn.pad_sequence(feature_list, batch_first=False)
+        output, hn = self.gru(input_feature)
+        output = output[-1,:,:] # get last output feature as representation for entire image
+        #output = torch.div(x.sum(dim=1, keepdim=False), attention_mask.sum(dim=1, keepdim=True) + eps)
         return output
 
 class BertFinetune(nn.Module):
