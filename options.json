@@ -38,5 +38,5 @@
     "val_file": "/content/data/val_annotations.json",
     "test_file": "/content/data/test_annotations.json",
     "feature_folder": "/content/data/COCO_Features",
-    "version": "/content/drive/My Drive/Models/Dual_Encoding_Attention_MultiLayer_1"
+    "version": "/content/drive/My Drive/Models/Dual_Encoding_Attention_MultiLayer_2"
 }
