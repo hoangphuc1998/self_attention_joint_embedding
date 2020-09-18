@@ -54,21 +54,21 @@ if __name__ == "__main__":
                                 use_dropout=opt['use_dropout'],
                                 use_batchnorm=opt['use_batchnorm']).to(device)
 
-    image_encoder = NeuralNetwork(input_dim=opt['image_dim'], 
-                                output_dim=opt['common_dim'], 
-                                hidden_units=opt['image_encoder_hidden'], 
-                                hidden_activation=opt['image_encoder_hidden_activation'], 
-                                output_activation=opt['image_encoder_output_activation'],
-                                use_dropout=opt['use_dropout'],
-                                use_batchnorm=opt['use_batchnorm']).to(device)
+    # image_encoder = NeuralNetwork(input_dim=opt['image_dim'], 
+    #                             output_dim=opt['common_dim'], 
+    #                             hidden_units=opt['image_encoder_hidden'], 
+    #                             hidden_activation=opt['image_encoder_hidden_activation'], 
+    #                             output_activation=opt['image_encoder_output_activation'],
+    #                             use_dropout=opt['use_dropout'],
+    #                             use_batchnorm=opt['use_batchnorm']).to(device)
     
-    image_mha = MultiSelfAttention(opt['image_dim'], num_layers=opt['num_attention_layers'], dropout=opt['mha_dropout']).to(device)
+    image_mha = MultiSelfAttention(opt['image_dim'], opt['common_dim'], num_layers=opt['num_attention_layers'], dropout=opt['mha_dropout']).to(device)
     if opt['text_model_type'] == 'roberta':
         bert = RobertaModel.from_pretrained(opt['text_model_pretrained'], output_hidden_states=True).to(device)
     else:
         bert = BertModel.from_pretrained(opt['text_model_pretrained'], output_hidden_states=True).to(device)
     bert_model = BertFinetune(bert, output_type=opt['output_bert_model'])
-    model = SAJEM(image_encoder, text_encoder, image_mha, bert_model, optimizer = opt['optimizer'], lr = opt['lr'], l2_regularization = opt['l2_regularization'],
+    model = SAJEM(text_encoder, image_mha, bert_model, optimizer = opt['optimizer'], lr = opt['lr'], l2_regularization = opt['l2_regularization'],
                     max_violation=opt['max_violation'], margin_loss=opt['margin_loss'], use_lr_scheduler=opt['use_lr_scheduler'], grad_clip=opt['grad_clip'],
                     num_training_steps = int((opt['epochs']-1) * len(dataloader)),
                     device = device)

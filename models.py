@@ -112,14 +112,14 @@ class MultiSelfAttention(nn.Module):
     """
     Multi layer self attention module
     """
-    def __init__(self, embed_dim, num_layers=2, bias=True, dropout=0):
+    def __init__(self, embed_dim, output_dim, num_layers=2, bias=True, dropout=0):
         super().__init__()
         blocks = []
         self.num_layers = num_layers
         for _ in range(num_layers):
             blocks.append(CustomSelfAttention(embed_dim, bias, dropout))
         self.attn_modules = nn.ModuleList(blocks)
-        self.gru = nn.GRU(embed_dim, embed_dim, num_layers=1, batch_first=False)
+        self.gru = nn.GRU(embed_dim, output_dim, num_layers=1, batch_first=False)
     def forward(self, x, attention_mask):
         eps = 1e-9
         for attn_module in self.attn_modules:
@@ -159,10 +159,10 @@ class SAJEM():
     Self-Attention based Joint Embedding Model
     Consist of 2 branches to encode image and text
     '''
-    def __init__(self, image_encoder, text_encoder, image_mha, bert_model, optimizer = 'adam', lr = 1e-3, l2_regularization=1e-2, margin_loss = 1e-2,
+    def __init__(self, text_encoder, image_mha, bert_model, optimizer = 'adam', lr = 1e-3, l2_regularization=1e-2, margin_loss = 1e-2,
                max_violation=True, cost_style='mean', use_lr_scheduler=False, grad_clip=0, num_training_steps = 30000, device='cuda'):
         self.image_mha = image_mha
-        self.image_encoder = image_encoder
+        # self.image_encoder = image_encoder
         self.text_encoder = text_encoder
         self.bert_model = bert_model
         self.device = device
@@ -171,7 +171,7 @@ class SAJEM():
         self.params = []
         self.params = list(self.image_mha.parameters())
         self.params += list(self.text_encoder.parameters())
-        self.params += list(self.image_encoder.parameters())
+        # self.params += list(self.image_encoder.parameters())
         self.params += list(self.bert_model.parameters())
         self.grad_clip = grad_clip
         self.frozen = False
@@ -179,8 +179,11 @@ class SAJEM():
             self.optimizer = AdamW([{'params':list(self.bert_model.parameters()),'lr':3e-5},
                                 {'params':list(self.image_encoder.parameters()) + list(self.text_encoder.parameters()) + list(self.image_mha.parameters()),'lr':1e-4}])
         elif optimizer == 'adam':
+            # self.optimizer = torch.optim.Adam([{'params':list(self.bert_model.parameters()),'lr':3e-5},
+            #                     {'params':list(self.image_encoder.parameters()) + list(self.text_encoder.parameters()) + list(self.image_mha.parameters()),'lr':1e-4}])
+
             self.optimizer = torch.optim.Adam([{'params':list(self.bert_model.parameters()),'lr':3e-5},
-                                {'params':list(self.image_encoder.parameters()) + list(self.text_encoder.parameters()) + list(self.image_mha.parameters()),'lr':1e-4}])
+                                {'params':list(self.text_encoder.parameters()) + list(self.image_mha.parameters()),'lr':1e-4}])
         
         if self.use_lr_scheduler:
             self.lr_scheduler = get_linear_schedule_with_warmup(self.optimizer, num_warmup_steps=100, num_training_steps=num_training_steps)
@@ -201,13 +204,14 @@ class SAJEM():
         if epoch == 1:
             text_feature = text_feature.detach()
             self.frozen = True
-        image_to_common = self.image_encoder(final_image_features)
+        # image_to_common = self.image_encoder(final_image_features)
+        image_to_common = final_image_features
         text_to_common = self.text_encoder(text_feature)
         return image_to_common, text_to_common
     def save_network(self, folder):
         torch.save(self.image_mha.state_dict(), os.path.join(folder, 'image_mha.pth'))
         torch.save(self.text_encoder.state_dict(), os.path.join(folder, 'text_encoder.pth'))
-        torch.save(self.image_encoder.state_dict(), os.path.join(folder, 'image_encoder.pth'))
+        # torch.save(self.image_encoder.state_dict(), os.path.join(folder, 'image_encoder.pth'))
         torch.save(self.bert_model.state_dict(), os.path.join(folder, 'bert_model.pth'))
         torch.save(self.optimizer.state_dict(), os.path.join(folder, 'optimizer.pth'))
         if self.use_lr_scheduler:
@@ -215,12 +219,12 @@ class SAJEM():
     def switch_to_train(self):
         self.image_mha.train()
         self.text_encoder.train()
-        self.image_encoder.train()
+        # self.image_encoder.train()
         self.bert_model.train()
     def switch_to_eval(self):
         self.image_mha.eval()
         self.text_encoder.eval()
-        self.image_encoder.eval()
+        # self.image_encoder.eval()
         self.bert_model.eval()
 
     def train(self, image_features, image_attention_mask, input_ids, attention_mask, epoch):
@@ -255,7 +259,8 @@ class SAJEM():
                 image_attention_mask = torch.stack(image_attention_mask).to(self.device)
                 features = l2norm(features).detach()
                 mha_features = l2norm(self.image_mha(features, image_attention_mask))
-                image_features.append(self.image_encoder(mha_features))
+                # image_features.append(self.image_encoder(mha_features))
+                image_features.append(mha_features)
             image_features = torch.cat(image_features, dim=0)
             image_ids = torch.cat(image_ids, dim=0).to(self.device)
             # Evaluate
