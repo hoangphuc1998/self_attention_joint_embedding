@@ -27,7 +27,6 @@
     "text_model_type": "roberta",
     "text_model_pretrained": "roberta-base",
     "output_bert_model": "cls4",
-    "image_model_type": "resnet101",
     "k": 10,
     "use_batchnorm": true,
     "grad_clip": 2,
