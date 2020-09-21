@@ -15,10 +15,6 @@ import sys
 from utils import get_top_k_eval, l2norm
 from losses import MarginRankingLoss
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-def print_debug(tensor_map):
-    for key, value in tensor_map.items():
-        print(key + ': ')
-        print(value)
 class NeuralNetwork(nn.Module):
     '''
     Neural network with custom hidden layers
@@ -74,8 +70,8 @@ class CustomSelfAttention(nn.Module):
         self.query_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
         self.key_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
         self.value_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
-        self.output_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
-        self.output_dropout = nn.Dropout(dropout)
+        # self.output_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
+        # self.output_dropout = nn.Dropout(dropout)
         self.layer_norm = nn.LayerNorm([embed_dim])
         self.init_weights()
     def forward(self, image_features, attention_mask):
@@ -90,8 +86,8 @@ class CustomSelfAttention(nn.Module):
         attn_weights = F.softmax(scores, dim=-1) # (B, N, N)
         attn_weights = torch.mul(attn_weights, attention_mask.unsqueeze(1))
         attn_output = attn_weights.bmm(value)
-        attn_output = self.output_proj(attn_output)
-        attn_output = self.output_dropout(attn_output)
+        # attn_output = self.output_proj(attn_output)
+        # attn_output = self.output_dropout(attn_output)
         residual = self.layer_norm(image_features + attn_output)
         #output = residual.mean(dim=0, keepdim=True)
         
@@ -101,12 +97,12 @@ class CustomSelfAttention(nn.Module):
         nn.init.xavier_uniform_(self.key_proj.weight)
         nn.init.xavier_uniform_(self.query_proj.weight)
         nn.init.xavier_uniform_(self.value_proj.weight)
-        nn.init.xavier_uniform_(self.output_proj.weight)
+        # nn.init.xavier_uniform_(self.output_proj.weight)
         if self.bias:
             nn.init.constant_(self.key_proj.bias, 0.0)
             nn.init.constant_(self.query_proj.bias, 0.0)
             nn.init.constant_(self.value_proj.bias, 0.0)
-            nn.init.constant_(self.output_proj.bias, 0.0)
+            # nn.init.constant_(self.output_proj.bias, 0.0)
 
 class MultiSelfAttention(nn.Module):
     """
