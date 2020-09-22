@@ -1,7 +1,7 @@
 {
     "image_dim": 2048,
     "text_dim": 3072,
-    "common_dim": 1024,
+    "common_dim": 2048,
     "image_encoder_hidden": [2048],
     "text_encoder_hidden": [2048],
     "image_decoder_hidden": [2048],

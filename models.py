@@ -200,8 +200,8 @@ class SAJEM():
         if epoch == 1:
             text_feature = text_feature.detach()
             self.frozen = True
-        image_to_common = self.image_encoder(final_image_features)
-        # image_to_common = final_image_features
+        # image_to_common = self.image_encoder(final_image_features)
+        image_to_common = final_image_features
         text_to_common = self.text_encoder(text_feature)
         return image_to_common, text_to_common
     def save_network(self, folder):
@@ -255,8 +255,8 @@ class SAJEM():
                 image_attention_mask = torch.stack(image_attention_mask).to(self.device)
                 features = l2norm(features).detach()
                 mha_features = l2norm(self.image_mha(features, image_attention_mask))
-                image_features.append(self.image_encoder(mha_features))
-                # image_features.append(mha_features)
+                # image_features.append(self.image_encoder(mha_features))
+                image_features.append(mha_features)
             image_features = torch.cat(image_features, dim=0)
             image_ids = torch.cat(image_ids, dim=0).to(self.device)
             # Evaluate
