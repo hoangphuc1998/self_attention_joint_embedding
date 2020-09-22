@@ -62,7 +62,7 @@ if __name__ == "__main__":
                                 use_dropout=opt['use_dropout'],
                                 use_batchnorm=opt['use_batchnorm']).to(device)
     
-    image_mha = MultiSelfAttention(opt['image_dim'], opt['image_dim'], num_layers=opt['num_attention_layers'], dropout=opt['mha_dropout']).to(device)
+    image_mha = MultiSelfAttention(opt['image_dim'], opt['image_dim'], opt['image_embed_dim'], num_layers=opt['num_attention_layers'], dropout=opt['mha_dropout']).to(device)
     if opt['text_model_type'] == 'roberta':
         bert = RobertaModel.from_pretrained(opt['text_model_pretrained'], output_hidden_states=True).to(device)
     else:

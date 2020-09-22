@@ -63,16 +63,17 @@ class CustomSelfAttention(nn.Module):
     '''
     Custom self attention module (inspired from Multi-Head Self Attention)
     '''
-    def __init__(self, embed_dim, bias = True, dropout = 0):
+    def __init__(self, input_dim, embed_dim, bias = True, dropout = 0):
         super().__init__()
         self.bias = bias
         self.embed_dim = embed_dim
-        self.query_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
-        self.key_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
-        self.value_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
-        # self.output_proj = nn.Linear(embed_dim, embed_dim, bias = bias)
-        # self.output_dropout = nn.Dropout(dropout)
-        self.layer_norm = nn.LayerNorm([embed_dim])
+        self.input_dim = input_dim
+        self.query_proj = nn.Linear(input_dim, embed_dim, bias = bias)
+        self.key_proj = nn.Linear(input_dim, embed_dim, bias = bias)
+        self.value_proj = nn.Linear(input_dim, embed_dim, bias = bias)
+        self.output_proj = nn.Linear(embed_dim, input_dim, bias = bias)
+        self.output_dropout = nn.Dropout(dropout)
+        self.layer_norm = nn.LayerNorm([input_dim])
         self.init_weights()
     def forward(self, image_features, attention_mask):
         '''
@@ -86,8 +87,8 @@ class CustomSelfAttention(nn.Module):
         attn_weights = F.softmax(scores, dim=-1) # (B, N, N)
         attn_weights = torch.mul(attn_weights, attention_mask.unsqueeze(1))
         attn_output = attn_weights.bmm(value)
-        # attn_output = self.output_proj(attn_output)
-        # attn_output = self.output_dropout(attn_output)
+        attn_output = self.output_proj(attn_output)
+        attn_output = self.output_dropout(attn_output)
         residual = self.layer_norm(image_features + attn_output)
         #output = residual.mean(dim=0, keepdim=True)
         
@@ -108,14 +109,14 @@ class MultiSelfAttention(nn.Module):
     """
     Multi layer self attention module
     """
-    def __init__(self, embed_dim, output_dim, num_layers=2, bias=True, dropout=0):
+    def __init__(self, input_dim, output_dim, embed_dim, num_layers=2, bias=True, dropout=0):
         super().__init__()
         blocks = []
         self.num_layers = num_layers
         for _ in range(num_layers):
-            blocks.append(CustomSelfAttention(embed_dim, bias, dropout))
+            blocks.append(CustomSelfAttention(input_dim, embed_dim, bias, dropout))
         self.attn_modules = nn.ModuleList(blocks)
-        self.gru = nn.GRU(embed_dim, output_dim, num_layers=1, batch_first=False)
+        self.gru = nn.GRU(input_dim, output_dim, num_layers=1, batch_first=False)
     def forward(self, x, attention_mask):
         eps = 1e-9
         for attn_module in self.attn_modules:
@@ -200,8 +201,8 @@ class SAJEM():
         if epoch == 1:
             text_feature = text_feature.detach()
             self.frozen = True
-        # image_to_common = self.image_encoder(final_image_features)
-        image_to_common = final_image_features
+        image_to_common = self.image_encoder(final_image_features)
+        # image_to_common = final_image_features
         text_to_common = self.text_encoder(text_feature)
         return image_to_common, text_to_common
     def save_network(self, folder):
@@ -255,8 +256,8 @@ class SAJEM():
                 image_attention_mask = torch.stack(image_attention_mask).to(self.device)
                 features = l2norm(features).detach()
                 mha_features = l2norm(self.image_mha(features, image_attention_mask))
-                # image_features.append(self.image_encoder(mha_features))
-                image_features.append(mha_features)
+                image_features.append(self.image_encoder(mha_features))
+                # image_features.append(mha_features)
             image_features = torch.cat(image_features, dim=0)
             image_ids = torch.cat(image_ids, dim=0).to(self.device)
             # Evaluate
